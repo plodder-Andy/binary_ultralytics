@@ -55,7 +55,10 @@ class KDTrainer:
             overrides: 参数覆盖字典
         """
         # 加载配置
-        self.args = get_cfg(cfg, overrides)
+        if cfg is not None:
+            self.args = get_cfg(cfg, overrides)
+        else:
+            self.args = get_cfg(overrides=overrides)
 
         # 基本参数
         self.model_path = self.args.model
