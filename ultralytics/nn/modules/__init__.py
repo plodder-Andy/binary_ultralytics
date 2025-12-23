@@ -101,6 +101,13 @@ from .transformer import (
     TransformerEncoderLayer,
     TransformerLayer,
 )
+from .binarized_conv import (
+    LearnableBias,
+    BinaryActivation,
+    BinaryConv,
+    BinaryC2f,
+    HardBinaryConv,
+)
 
 __all__ = (
     "AIFI",
@@ -179,4 +186,10 @@ __all__ = (
     "YOLOEDetect",
     "YOLOESegment",
     "v10Detect",
+    # 自定义模块
+    "LearnableBias",
+    "BinaryActivation",
+    "BinaryConv",
+    "BinaryC2f",
+    "HardBinaryConv",
 )

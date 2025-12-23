@@ -1,0 +1,6 @@
+# Parameters
+nc: 80 # number of classes
+scales: 
+  n: [0.50, 0.25, 1024]
+
+backbone:

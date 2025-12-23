@@ -849,3 +849,54 @@ class TVPSegmentLoss(TVPDetectLoss):
         vp_loss = self.vp_criterion((vp_feats, pred_masks, proto), batch)
         cls_loss = vp_loss[0][2]
         return cls_loss, vp_loss[1]
+
+
+class DistributionLoss(nn.Module):
+    """The KL-Divergence loss for knowledge distillation between student and teacher models.
+
+    This loss is used for binary neural network training where the student model
+    learns from a full-precision teacher model's output distribution.
+
+    Attributes:
+        size_average (bool): Whether to average the loss over the batch.
+
+    References:
+        ReActNet: Towards Precise Binary Neural Network with Generalized Activation Functions
+        https://arxiv.org/abs/2003.03488
+    """
+
+    def __init__(self):
+        """Initialize the DistributionLoss module."""
+        super().__init__()
+        self.size_average = True
+
+    def forward(self, model_output: torch.Tensor, teacher_output: torch.Tensor) -> torch.Tensor:
+        """Compute KL divergence loss between student and teacher model outputs.
+
+        Args:
+            model_output (torch.Tensor): Student model output (pre-softmax logits), shape (N, C).
+            teacher_output (torch.Tensor): Teacher model output (softmax probabilities), shape (N, C).
+
+        Returns:
+            torch.Tensor: KL divergence loss value.
+        """
+        if teacher_output.requires_grad:
+            raise ValueError("Teacher output should not require gradients.")
+
+        model_output_log_prob = F.log_softmax(model_output, dim=1)
+        teacher_output_soft = F.softmax(teacher_output, dim=1)
+
+        # KL divergence: -sum(p * log(q)) where p is teacher, q is student
+        # Using batch matrix multiplication for efficient computation
+        teacher_output_soft = teacher_output_soft.unsqueeze(2)  # (N, C, 1)
+        model_output_log_prob = model_output_log_prob.unsqueeze(2)  # (N, C, 1)
+
+        # cross_entropy_loss = -dot(teacher_soft, student_log_prob)
+        cross_entropy_loss = -torch.bmm(teacher_output_soft.transpose(1, 2), model_output_log_prob)
+
+        if self.size_average:
+            cross_entropy_loss = cross_entropy_loss.mean()
+        else:
+            cross_entropy_loss = cross_entropy_loss.sum()
+
+        return cross_entropy_loss
