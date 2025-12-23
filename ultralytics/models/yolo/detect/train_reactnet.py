@@ -27,7 +27,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from ultralytics import YOLO
-from ultralytics.cfg import get_cfg
 from ultralytics.data import build_yolo_dataset
 from ultralytics.nn.modules import Conv
 from ultralytics.utils import LOGGER, TQDM, colorstr
@@ -46,7 +45,7 @@ class KDTrainer:
     3. 集成 ReActNet 训练超参数
     """
 
-    def __init__(self, cfg: str | dict | None = None, overrides: dict | None = None):
+    def __init__(self, overrides: dict | None = None):
         """
         初始化训练器
 
@@ -54,41 +53,35 @@ class KDTrainer:
             cfg: 配置文件路径或字典
             overrides: 参数覆盖字典
         """
-        # 加载配置
-        if cfg is not None:
-            self.args = get_cfg(cfg, overrides)
-        else:
-            self.args = get_cfg(overrides=overrides)
-
-        # 基本参数
-        self.model_path = self.args.model
-        self.data_path = self.args.data
-        self.epochs = self.args.epochs
-        self.batch_size = self.args.batch
-        self.img_size = self.args.imgsz
-        self.device = self.args.device
+        # 直接从 overrides 中提取参数，不使用 get_cfg 验证
+        self.model_path = overrides.get('model', 'yolov8n-react.yaml')
+        self.data_path = overrides.get('data', '')
+        self.epochs = overrides.get('epochs', 150)
+        self.batch_size = overrides.get('batch', 32)
+        self.img_size = overrides.get('imgsz', 640)
+        self.device = str(overrides.get('device', '0'))
 
         # 学习率参数
-        self.lr0 = self.args.lr0
-        self.lrf = self.args.lrf
-        self.momentum = self.args.momentum
-        self.weight_decay = self.args.weight_decay
+        self.lr0 = overrides.get('lr0', 0.001)
+        self.lrf = overrides.get('lrf', 0.01)
+        self.momentum = overrides.get('momentum', 0.9)
+        self.weight_decay = overrides.get('weight_decay', 1e-5)
 
         # 蒸馏参数
-        self.teacher_path = getattr(self.args, 'teacher', None)
-        self.kd_alpha = getattr(self.args, 'kd_alpha', 0.0)
-        self.kd_temp = getattr(self.args, 'kd_temp', 1.0)
+        self.teacher_path = overrides.get('teacher', None)
+        self.kd_alpha = overrides.get('kd_alpha', 0.0)
+        self.kd_temp = overrides.get('kd_temp', 1.0)
 
         # 其他参数
-        self.save_dir = self.args.save_dir if hasattr(self.args, 'save_dir') else 'runs/train'
-        self.project = getattr(self.args, 'project', 'runs/train')
-        self.name = getattr(self.args, 'name', 'exp')
-        self.cos_lr = getattr(self.args, 'cos_lr', False)
-        self.warmup_epochs = getattr(self.args, 'warmup_epochs', 3.0)
-        self.amp = getattr(self.args, 'amp', True)
-        self.val = getattr(self.args, 'val', True)
-        self.save_period = getattr(self.args, 'save_period', -1)
-        self.plots = getattr(self.args, 'plots', True)
+        self.save_dir = overrides.get('save_dir', 'runs/train')
+        self.project = overrides.get('project', 'runs/train')
+        self.name = overrides.get('name', 'exp')
+        self.cos_lr = overrides.get('cos_lr', False)
+        self.warmup_epochs = overrides.get('warmup_epochs', 3.0)
+        self.amp = overrides.get('amp', True)
+        self.val = overrides.get('val', True)
+        self.save_period = overrides.get('save_period', -1)
+        self.plots = overrides.get('plots', True)
 
         # 初始化组件
         self.model = None
@@ -448,9 +441,15 @@ def main():
         'amp': args.amp,
     }
 
-    # 如果指定了配置文件，使用配置文件
+    # 如果指定了配置文件，从yaml读取并合并
     if args.cfg:
-        trainer = KDTrainer(cfg=args.cfg)
+        from ultralytics.cfg import get_cfg
+        cfg_args = get_cfg(args.cfg, overrides)
+        # 将配置对象转为字典
+        cfg_dict = {k: v for k, v in vars(cfg_args).items() if not k.startswith('_')}
+        # 合并到 overrides（命令行参数优先级更高）
+        cfg_dict.update(overrides)
+        trainer = KDTrainer(overrides=cfg_dict)
     else:
         trainer = KDTrainer(overrides=overrides)
 
