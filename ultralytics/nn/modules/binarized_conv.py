@@ -94,8 +94,11 @@ C2f二值化版本
 用于第一阶段，仅激活二值化
 """
 class BinaryC2f(C2f):
-    def __init__(self, c1: int, c2: int, n: int = 1, shortcut: bool = False, g: int = 1, e: float = 0.5):
+    def __init__(self, c1: int, c2: int = 0, n: int = 1, shortcut: bool = False, g: int = 1, e: float = 0.5):
         """Initialize binary C2f layer with BinaryConv activations."""
+        # 处理 c2=0 的情况（兼容省略 c2 的 yaml 配置）
+        if c2 == 0:
+            c2 = c1
         super().__init__(c1, c2, n, shortcut, g, e)
         # 将内部的 Conv 替换为 BinaryConv（仅 cv1 和 cv2）
         self.cv1 = BinaryConv(c1, 2 * self.c, 1, 1)

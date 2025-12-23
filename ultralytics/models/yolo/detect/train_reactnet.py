@@ -88,7 +88,7 @@ class KDTrainer:
         self.teacher_model = None
         self.optimizer = None
         self.scheduler = None
-        self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = torch.amp.GradScaler('cuda')
         self.train_loader = None
         self.val_loader = None
 
