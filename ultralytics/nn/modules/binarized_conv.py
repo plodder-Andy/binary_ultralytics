@@ -92,6 +92,22 @@ class HardBinaryConv(nn.Module):
 
 
 """
+BinaryBottleneck - 用于 BinaryC2f 的内部 Bottleneck
+cv2 输出 c2 通道（与 cv1 的第二个输出匹配）
+"""
+class BinaryBottleneck(nn.Module):
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5):
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = BinaryConv(c1, c_, k[0], 1)
+        self.cv2 = BinaryConv(c_, c2, k[1], 1, g=g)  # 输出 c2，与 cv1 第二个输出匹配
+        self.add = shortcut and c1 == c2
+
+    def forward(self, x):
+        return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+
+
+"""
 C2f二值化版本
 用于第一阶段，仅激活二值化
 """
@@ -105,4 +121,12 @@ class BinaryC2f(C2f):
         # 将内部的 Conv 替换为 BinaryConv（仅 cv1 和 cv2）
         self.cv1 = BinaryConv(c1, 2 * self.c, 1, 1)
         self.cv2 = BinaryConv((2 + n) * self.c, c2, 1)
+        # 使用 BinaryBottleneck 替代 Bottleneck
+        self.m = nn.ModuleList(BinaryBottleneck(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0) for _ in range(n))
+
+    def forward(self, x):
+        """Forward pass through BinaryC2f layer."""
+        y = list(self.cv1(x).chunk(2, 1))
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, 1))
     
