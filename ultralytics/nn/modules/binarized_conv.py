@@ -53,12 +53,14 @@ class BinaryActivation(nn.Module):
 class BinaryConv(Conv):
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1):
         super().__init__(c1, c2, k, s, p, g, d, act=nn.Identity())
-        self.bias = nn.Parameter(torch.zeros(1, c2, 1, 1), requires_grad=True)  # 可学习偏置
+        self.c1 = c1  # 保存输入通道数
+        self.c2 = c2  # 保存输出通道数
+        self.bias = nn.Parameter(torch.zeros(1, c1, 1, 1), requires_grad=True)  # 可学习偏置（基于输入通道）
         self.act = BinaryActivation()
 
     def forward(self, x):
-        # LearnableBias: x + bias
-        out = x + self.bias.expand_as(x)
+        # LearnableBias: x + bias (bias shape: [1, c1, 1, 1], 自动广播到 [B, c1, H, W])
+        out = x + self.bias
         # Conv + BN + BinaryActivation
         return self.act(self.bn(self.conv(out)))
 
