@@ -62,8 +62,9 @@ warmup_bias_lr: 0.05  # bias学习率 (相对较小，避免干扰binary激活)
 close_mosaic: 10    # 最后10轮关闭mosaic
                     # 稳定末期训练，二值化网络需要稳定期
 
-amp: True           # 混合精度训练
-                    # 必须开启：减少显存，支持更大batch
+amp: False          # 混合精度训练
+                    # 注意：二值化卷积与AMP存在兼容性问题，暂时关闭
+                    # 如需开启，需要修改 binarized_conv.py 确保验证时精度一致
 
 multi_scale: False  # 多尺度训练
                     # 建议关闭：二值化激活对尺度变化更敏感

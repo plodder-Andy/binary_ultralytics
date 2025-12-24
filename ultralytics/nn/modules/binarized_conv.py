@@ -20,11 +20,12 @@ from .block import C2f
 class LearnableBias(nn.Module):
     def __init__(self, out_chn):
         super(LearnableBias, self).__init__()
-        self.bias = nn.Parameter(torch.zeros(1,out_chn,1,1), requires_grad=True)
+        # 使用标量偏置，PyTorch 会自动广播到 x 的形状
+        self.bias = nn.Parameter(torch.zeros(1))
 
     def forward(self, x):
-        out = x + self.bias.expand_as(x)
-        return out
+        # 标量偏置会自动广播到 x 的形状
+        return x + self.bias
     
 """
 激活二值化函数
@@ -55,12 +56,12 @@ class BinaryConv(Conv):
         super().__init__(c1, c2, k, s, p, g, d, act=nn.Identity())
         self.c1 = c1  # 保存输入通道数
         self.c2 = c2  # 保存输出通道数
-        self.bias = nn.Parameter(torch.zeros(1, c1, 1, 1), requires_grad=True)  # 可学习偏置（基于输入通道）
+        self.bias = LearnableBias(c1)  # 使用 LearnableBias 模块处理输入偏移
         self.act = BinaryActivation()
 
     def forward(self, x):
-        # LearnableBias: x + bias (bias shape: [1, c1, 1, 1], 自动广播到 [B, c1, H, W])
-        out = x + self.bias
+        # LearnableBias: x + bias (自动处理广播)
+        out = self.bias(x)
         # Conv + BN + BinaryActivation
         return self.act(self.bn(self.conv(out)))
 
