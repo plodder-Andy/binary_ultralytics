@@ -103,10 +103,14 @@ from .transformer import (
 )
 from .binarized_conv import (
     LearnableBias,
-    BinaryActivation,
-    BinaryConv,
-    BinaryC2f,
+    BinAct,
+    BinActConv,
     HardBinaryConv,
+    BinWgtConv,
+    LSQAct,
+    LSQConv,
+    LSQFullConv,
+    LSQWgt,
 )
 
 __all__ = (
@@ -188,8 +192,12 @@ __all__ = (
     "v10Detect",
     # 自定义模块
     "LearnableBias",
-    "BinaryActivation",
-    "BinaryConv",
-    "BinaryC2f",
+    "BinAct",
+    "BinActConv",
     "HardBinaryConv",
+    "BinWgtConv",
+    "LSQAct",
+    "LSQConv",
+    "LSQFullConv",
+    "LSQWgt",
 )
